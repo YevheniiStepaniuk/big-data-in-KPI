@@ -1,0 +1,25 @@
+version: "3"
+services:
+  hive-server:
+    image: bde2020/hive:2.1.0-postgresql-metastore
+    container_name: hive-server
+    env_file:
+      - ./hadoop-hive.env
+    environment:
+      - "HIVE_CORE_CONF_javax_jdo_option_ConnectionURL=jdbc:postgresql://hive-metastore/metastore"
+    ports:
+      - "10000:10000"
+    volumes:
+      - ./input/hive:/opt/hive/data
+    depends_on:
+      - hive-metastore
+  hive-metastore:
+    image: bde2020/hive:2.1.0-postgresql-metastore
+    container_name: hive-metastore
+    env_file:
+      - ./hadoop-hive.env
+    command: /opt/hive/bin/hive --service metastore
+    depends_on:
+      - hive-metastore-postgresql
+  hive-metastore-postgresql:
+    image: bde2020/hive-metastore-postgresql:2.1.0
