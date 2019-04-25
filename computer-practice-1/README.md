@@ -52,10 +52,6 @@ hive -f {script-name}
 
 - Namenode: http://localhost:50070
 - Datanode: http://localhost:50075
-- Hue (HDFS Filebrowser): http://localhost:8088/home
-- Application History: http://localhost:80188/applicationhistory
-- Nodemanager: http://localhost:80042/node
-- Resource manager: http://localhost:80088/
 
 ## Useful commands
 

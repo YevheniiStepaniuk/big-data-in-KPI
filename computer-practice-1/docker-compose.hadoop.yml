@@ -12,9 +12,6 @@ services:
       - ./hadoop-hive.env
     ports:
       - 50070:50070 #namenode
-      - 80088:8088 #resource manager
-      - 80042:8042 #nodemanager
-      - 80188:8188 #history server
     depends_on:
       - datanode1
       - datanode2
