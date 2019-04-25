@@ -6,3 +6,7 @@ services:
       - 8088:8088
     environment:
       - NAMENODE_HOST=namenode
+  presto-coordinator:
+    image: shawnzhu/prestodb:0.181
+    ports:
+      - "8080:8080"

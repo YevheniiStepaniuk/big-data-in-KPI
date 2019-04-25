@@ -11,11 +11,16 @@ services:
     env_file:
       - ./hadoop-hive.env
     ports:
-      - 50070:50070
+      - 50070:50070 #namenode
+      - 80088:8088 #resource manager
+      - 80042:8042 #nodemanager
+      - 80188:8188 #history server
     depends_on:
       - datanode1
       - datanode2
-    # command: "/hadoop/dfs/input-data/hadoop-setup.sh"
+      - datanode3
+      - datanode4
+      - datanode5
   datanode1:
     image: bde2020/hadoop-datanode:1.1.0-hadoop2.8-java8
     volumes:
@@ -34,5 +39,35 @@ services:
       - ./hadoop-hive.env
     ports:
       - 50076:50075
+    environment:
+      - CLUSTER_NAME=test
+  datanode3:
+    image: bde2020/hadoop-datanode:1.1.0-hadoop2.8-java8
+    volumes:
+      - ./data/datanode-3:/hadoop/dfs/data
+    env_file:
+      - ./hadoop-hive.env
+    ports:
+      - 50077:50075
+    environment:
+      - CLUSTER_NAME=test
+  datanode4:
+    image: bde2020/hadoop-datanode:1.1.0-hadoop2.8-java8
+    volumes:
+      - ./data/datanode-4:/hadoop/dfs/data
+    env_file:
+      - ./hadoop-hive.env
+    ports:
+      - 50078:50075
+    environment:
+      - CLUSTER_NAME=test
+  datanode5:
+    image: bde2020/hadoop-datanode:1.1.0-hadoop2.8-java8
+    volumes:
+      - ./data/datanode-5:/hadoop/dfs/data
+    env_file:
+      - ./hadoop-hive.env
+    ports:
+      - 50079:50075
     environment:
       - CLUSTER_NAME=test

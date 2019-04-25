@@ -1,38 +1,59 @@
 # How to use HDFS/Spark Workbench
 
-To start an HDFS/Spark Workbench:
+To start an HDFS
 
 ```
-    docker-compose up -d
+    docker-compose -f ./docker-compose.hadoop.yml up -d
 ```
 
-To scale up spark-workers:
+To start an Hive
 
 ```
-    docker-compose up -d --scale datanode=3
+    docker-compose -f ./docker-compose.hive.yml up -d
 ```
 
-## Starting workbench with Hive support
-
-Before starting the next command, check that the previous service is running correctly (with docker logs servicename).
+To start both
 
 ```
-docker-compose -f docker-compose-hive.yml up -d namenode hive-metastore-postgresql
-docker-compose -f docker-compose-hive.yml up -d datanode hive-metastore
-docker-compose -f docker-compose-hive.yml up -d hive-server
+    docker-compose -f .\docker-compose.hadoop.yml -f .\docker-compose.hive.yml up -d
 
-docker-compose -f .\docker-compose.hive.yml -f .\docker-compose.hadoop.yml up -d
-docker-compose exec namenode bash
+```
+
+## How to seed data to Hadoop
+
+```
+docker-compose -f docker-compose.hadoop.yml exec namenode bash
 cd hadoop/dfs/input-data/
 
-docker-compose exec hive-server bash
+hadoop fs -mkdir /tables_data;
+hadoop fs -mkdir /tables_data/UO;
+hadoop fs -mkdir /tables_data/FOP;
+hadoop fs -put ./UO.csv /tables_data/UO/;
+hadoop fs -put ./FOP.csv /tables_data/FOP/;
+```
+
+## How to run wordcount example
+
+```
+hadoop jar /opt/hadoop-2.8.0/share/hadoop/mapreduce/hadoop-mapreduce-examples-2.8.0.jar wordcount /tables_data/UO/ output
+```
+
+## How to run scripts in the hive
+
+```
+docker-compose -f docker-compose-hive.yml up -d hive-server
+cd hive/data/scripts
+hive -f {script-name}
 ```
 
 ## Interfaces
 
 - Namenode: http://localhost:50070
 - Datanode: http://localhost:50075
-- Hue (HDFS Filebrowser): http://localhost:8088
+- Hue (HDFS Filebrowser): http://localhost:8088/home
+- Application History: http://localhost:80188/applicationhistory
+- Nodemanager: http://localhost:80042/node
+- Resource manager: http://localhost:80088/
 
 ## Important
 
