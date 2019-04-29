@@ -1,0 +1,9 @@
+/data
+*.xml
+*.csv
+Hadoop-ETL/.vs/*
+Hadoop-ETL/Hadoop-ETL/bin/*
+Hadoop-ETL/Hadoop-ETL/obj/*
+*.user
+Hadoop-ETL/Hadoop-ETL/appsettings.release.json
+hadoop-etl.env

@@ -1,0 +1,10 @@
+version: "3"
+services:
+  hadoop-etl:
+    build:
+      dockerfile: ./Hadoop-ETL/Dockerfile
+      context: ./Hadoop-ETL
+    env_file:
+      - ./hadoop-etl.env
+    volumes:
+      - ./data/etl/store:/store
