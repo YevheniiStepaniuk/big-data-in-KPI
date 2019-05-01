@@ -1,6 +1,6 @@
 ﻿using System;
 using System.IO;
-using ChoETL;
+using Hadoop_ETL.Generator;
 using Hadoop_ETL.Infrastructure;
 using Microsoft.Extensions.Configuration;
 using Newtonsoft.Json.Linq;
@@ -15,66 +15,36 @@ namespace Hadoop_ETL
 
             var options = config.Get<ETLOptions>();
 
-            var nyTimesClient = new NyTimesClient(options.NyTimes);
-
-            var dateFrom = new DateTime(2012, 1, 1);
-            var dateTo = new DateTime(2013, 4, 1);
 
             var hadoopClient = new HDFSClient(options.Hadoop);
 
-            if (!Directory.Exists(options.NyTimes.FileStorePath))
+            Console.WriteLine($"Current mode is: {options.Mode}");
+
+            if (options.Mode == ApplicationMode.ETL)
             {
-                Directory.CreateDirectory(options.NyTimes.FileStorePath);
+                var dateFrom = new DateTime(options.NyTimes.YearFrom, options.NyTimes.MonthFrom, 1);
+                var dateTo = new DateTime(options.NyTimes.YearTo, options.NyTimes.MonthTo, 1);
+
+                var nyTimesClient = new NyTimesClient(options.NyTimes);
+                var etlProcessor = new ETLProcessor(hadoopClient, nyTimesClient, options);
+
+                etlProcessor.UploadItems(dateFrom, dateTo).Wait();
+            }
+            else
+            {
+                var dateFrom = new DateTime(options.FakeNews.YearFrom, options.FakeNews.MonthFrom, 1);
+                var dateTo = new DateTime(options.FakeNews.YearTo, options.FakeNews.MonthTo, 1);
+
+            
+                var fakeNewsGenerator = new FakeNewsGenerator();
+                var fakeNewsProcessor = new FakeNewsProcessor(options, fakeNewsGenerator, hadoopClient);
+
+
+                fakeNewsProcessor.Process(dateFrom: dateFrom, dateTo: dateTo).Wait();
             }
 
-            do
-            {
-                JArray items = nyTimesClient.LoadItemsFromArchive(dateFrom).Result;
 
-                var fileName = $"ny-times-{dateFrom:yyyy-MM}.csv";
-                var directoryName = $"dt={dateFrom:yyyy-MM}";
-
-                var storeDirectory = Path.Combine(options.NyTimes.FileStorePath, directoryName);
-                var hdfsDirecoryPath = Path.Combine(options.Hadoop.FolderPath, directoryName);
-                var hdfsFilePath = Path.Combine(hdfsDirecoryPath, fileName);
-
-                var filePath = Path.Combine(options.NyTimes.FileStorePath, fileName);
-
-                if (!hadoopClient.DirectoryExist(hdfsDirecoryPath).Result)
-                {
-                    hadoopClient.CreateDirectory(hdfsDirecoryPath).Wait();
-                }
-
-                if (File.Exists(filePath))
-                {
-                    hadoopClient.UploadFile(hdfsFilePath, filePath, true);
-                }
-                else
-                {
-                    var itemsStream = new MemoryStream();
-                    using (var r = ChoJSONReader.LoadText(items.ToString()))
-                    {
-                        using (var w = new ChoCSVWriter(itemsStream).WithFirstLineHeader())
-                        {
-                            w.Write(r);
-                        }
-                    }
-
-                    using (var fileStream = File.Create(filePath))
-                    {
-                        itemsStream.Seek(0, SeekOrigin.Begin);
-                        itemsStream.CopyTo(fileStream);
-                    }
-
-                    hadoopClient.UploadFile(hdfsFilePath, itemsStream, true).Wait();
-                }
-
-                dateFrom = dateFrom.AddMonths(1);
-
-            } while (dateFrom.Month <= dateTo.Month);
-            
-
-            Console.ReadKey();
+            Console.ReadLine();
         }
 
         private static IConfigurationRoot LoadConfig()
@@ -86,12 +56,17 @@ namespace Hadoop_ETL
 
             Console.WriteLine($"Current ENV is: {environmentName}");
 
-            return new ConfigurationBuilder()
+            var builder = new ConfigurationBuilder()
                 .SetBasePath(Directory.GetCurrentDirectory())
-                .AddJsonFile("appsettings.json", true, true)
-                .AddJsonFile($"appsettings.{environmentName}.json", true, true)
-                .AddEnvironmentVariables()
-                .Build();
+                .AddEnvironmentVariables();
+
+            if(environmentName == "local"){
+                builder = builder                
+                    .AddJsonFile("appsettings.json", true, true)
+                    .AddJsonFile($"appsettings.{environmentName}.json", true, true);
+            }
+
+            return builder.Build();
         }
     }
 }

@@ -1,6 +1,7 @@
 version: "3"
 services:
-  hadoop-etl:
+  hadoop-etl-generator:
+    container_name: hadoop-etl-generator
     build:
       dockerfile: ./Hadoop-ETL/Dockerfile
       context: ./Hadoop-ETL
@@ -8,3 +9,18 @@ services:
       - ./hadoop-etl.env
     volumes:
       - ./data/etl/store:/store
+    environment:
+      - MODE=Generator
+      # - MODE=ETL
+  hadoop-etl-loader:
+    container_name: hadoop-etl-loader
+    build:
+      dockerfile: ./Hadoop-ETL/Dockerfile
+      context: ./Hadoop-ETL
+    env_file:
+      - ./hadoop-etl.env
+    volumes:
+      - ./data/etl/store:/store
+    environment:
+      # - MODE=Generator
+      - MODE=ETL

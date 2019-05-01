@@ -46,3 +46,8 @@ hive -f {script-name}
 - get namenode url: `hdfs getconf -confKey fs.default.name`
 - turn off safe mode `hdfs dfsadmin -safemode leave`
 - update table partitions `hive -e 'msck repair table {table name}`
+
+## How to add JSON SerDe to the HIVE
+
+- `cp data/json-serde-1.3.8-jar-with-dependencies.jar lib/json-serde-1.3.8-jar-with-dependencies.jar`
+- `cp data/json-udf-1.3.8-jar-with-dependencies.jar lib/json-udf-1.3.8-jar-with-dependencies.jar`

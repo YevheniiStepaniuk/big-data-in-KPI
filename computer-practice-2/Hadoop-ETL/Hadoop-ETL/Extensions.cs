@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
+using Newtonsoft.Json;
 
 namespace Hadoop_ETL
 {
@@ -32,6 +33,25 @@ namespace Hadoop_ETL
                     + string.Join('&',result);
         }
 
+        public static Dictionary<T, U> IntoDictionary<T, U>(this IEnumerable<(T, U)> values, params (T,U)[] items)
+        {
+            var dictionary = new Dictionary<T, U>();
+            values = values ?? new (T, U)[0];
+            items = items ?? new (T, U)[0];
+
+            foreach (var (key, value) in values)
+            {
+                dictionary.Add(key, value);
+            }
+
+            foreach (var (key, value) in items)
+            {
+                dictionary.TryAdd(key, value);
+            }
+
+            return dictionary;
+        }
+
         public static IEnumerable<Exception> GetInnerExceptions(this Exception ex)
         {
             if (ex == null)
@@ -51,6 +71,19 @@ namespace Hadoop_ETL
             {
                 Console.WriteLine(innerException.Message);
             }
+        }
+
+        public static string ToHadoopJson<T>(this IEnumerable<T> items)
+        {
+            var builder = new StringBuilder();
+
+            foreach (var item in items)
+            {
+                builder.Append(JsonConvert.SerializeObject(item, Formatting.None));
+                builder.Append('\n');
+            }
+
+            return builder.ToString();
         }
     }
 }

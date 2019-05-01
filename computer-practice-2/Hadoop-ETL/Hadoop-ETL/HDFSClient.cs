@@ -47,12 +47,8 @@ namespace Hadoop_ETL
 
         public async Task<bool> UploadFile(string path, Stream stream, bool overwrite = false)
         {
-            var query = new Dictionary<string, string>
-            {
-                {"op", HadoopActions.CREATE.ToString("G")}, {"overwrite", overwrite.ToString()}
-            };
+            var url = BuildRequestLink(path, HadoopActions.CREATE, ("overwrite", overwrite.ToString()));
 
-            var url = $"{_options.ServerUrl}{path}{query.ToUrl()}";
             var locationResponse = await _httpClient.PutAsync(url, null);
             var location = locationResponse.Headers.Location;
             try
@@ -70,12 +66,7 @@ namespace Hadoop_ETL
 
         public async Task<bool> CreateDirectory(string path)
         {
-            var query = new Dictionary<string, string>
-            {
-                {"op", HadoopActions.MKDIRS.ToString("G")}
-            };
-
-            var url = $"{_options.ServerUrl}{path}{query.ToUrl()}";
+            var url = BuildRequestLink(path, HadoopActions.MKDIRS);
 
             try
             {
@@ -83,7 +74,6 @@ namespace Hadoop_ETL
             }
             catch (Exception e)
             {
-                e.WriteToConsole();
                 return false;
             }
 
@@ -92,13 +82,7 @@ namespace Hadoop_ETL
 
         public async Task<bool> DirectoryExist(string path)
         {
-            var query = new Dictionary<string, string>
-            {
-                {"op", HadoopActions.GETFILESTATUS.ToString("G")}
-            };
-
-            var url = $"{_options.ServerUrl}{path}{query.ToUrl()}";
-
+            var url = BuildRequestLink(path, HadoopActions.GETFILESTATUS);
             try
             {
                var response = await _httpClient.GetAsync(url);
@@ -109,6 +93,13 @@ namespace Hadoop_ETL
                 e.WriteToConsole();
                 return false;
             }
+        }
+
+        private string BuildRequestLink(string path, HadoopActions action, params (string, string)[] values)
+        {
+            var query = values.IntoDictionary(("op", $"{action:G}"));
+
+            return $"{_options.ServerUrl}{path}{query.ToUrl()}";
         }
     }
 

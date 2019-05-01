@@ -1,0 +1,1 @@
+msck repair table bd.ny_times_table;
