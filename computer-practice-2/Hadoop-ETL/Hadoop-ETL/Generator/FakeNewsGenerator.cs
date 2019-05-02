@@ -16,7 +16,7 @@ namespace Hadoop_ETL.Generator
 
             authorFaker
                 .RuleFor(f => f.FirstName, f => f.Name.FirstName())
-                .RuleFor(f => f.SecondName, f => f.Name.LastName())
+                .RuleFor(f => f.LastName, f => f.Name.LastName())
                 .RuleFor(f => f.Title, f => f.Name.JobTitle());
 
             var imageFaker = new Faker<Logo>();

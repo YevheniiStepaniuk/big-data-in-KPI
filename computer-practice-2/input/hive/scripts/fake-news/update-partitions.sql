@@ -1,0 +1,1 @@
+msck repair table bd.fake_news_table;

@@ -40,8 +40,10 @@ namespace Hadoop_ETL.Generator
 
     public class Author
     {
+        [JsonProperty("first_name")]
         public string FirstName { get; set; }
-        public string SecondName { get; set; }
+        [JsonProperty("last_name")]
+        public string LastName { get; set; }
         public string Title { get; set; }
     }
 
