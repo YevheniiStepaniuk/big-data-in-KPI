@@ -12,8 +12,7 @@ services:
     ports:
       - 50070:50070
     depends_on:
-      - datanode1
-      - datanode2
+      - datanode
   datanode:
     image: bde2020/hadoop-datanode:1.1.0-hadoop2.8-java8
     volumes:
