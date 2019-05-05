@@ -1,2 +1,6 @@
 /data
 /app.env
+/scala/.idea
+/scala/target
+/scala/project/project
+/scala/project/target
