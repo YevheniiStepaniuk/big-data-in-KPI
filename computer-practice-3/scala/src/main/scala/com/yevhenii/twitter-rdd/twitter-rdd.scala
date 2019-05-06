@@ -4,7 +4,6 @@ import org.apache.spark.streaming.twitter.TwitterUtils
 import org.apache.spark.streaming.{Seconds, StreamingContext}
 import twitter4j.auth.OAuthAuthorization
 import twitter4j.conf.ConfigurationBuilder
-import it.nerdammer.spark.hbase._
 
 import scala.util.Properties
 object twitterRdd {
@@ -33,7 +32,6 @@ object twitterRdd {
 
     val hashTags = twitterStream.flatMap(status => status.getText.split(" ").filter(_.startsWith("#")))
 
-  ssc.sparkContext.parallelize()
     val topCounts60 = hashTags.map((_, 1)).reduceByKeyAndWindow(_ + _, Seconds(60))
       .map{case (topic, count) => (count, topic)}
       .transform(_.sortByKey(false))
@@ -45,10 +43,10 @@ object twitterRdd {
       val topList = rdd.take(10).toList
       val r = topList.map{case (count, tag) => s"$tag: $count"}
 
-      rdd.toHBaseTable("mytable")
-        .toColumns("column1", "column2")
-        .inColumnFamily("mycf")
-        .save()
+//      rdd.toHBaseTable("mytable")
+//        .toColumns("column1", "column2")
+//        .inColumnFamily("mycf")
+//        .save()
       println(r)
     })
 

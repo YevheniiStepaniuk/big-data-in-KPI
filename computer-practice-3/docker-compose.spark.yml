@@ -1,15 +1,15 @@
 version: "3"
 services:
-  kafka-cluster:
-    container_name: kafka-cluster
-    image: landoop/fast-data-dev:latest
-    environment:
-      ADV_HOST: 127.0.0.1
-      RUNTESTS: 0
-    ports:
-      - 2181:2181 # Zookeeper
-      - 3030:3030 # Landoop UI
-      - 9092:9092
+  # kafka-cluster: #unused
+  #   container_name: kafka-cluster
+  #   image: landoop/fast-data-dev:latest
+  #   environment:
+  #     ADV_HOST: 127.0.0.1
+  #     RUNTESTS: 0
+  #   ports:
+  #     - 2181:2181 # Zookeeper
+  #     - 3030:3030 # Landoop UI
+  # - 9092:9092
   spark-master:
     image: bde2020/spark-master:2.1.0-hadoop2.8-hive-java8
     container_name: spark-master
@@ -28,10 +28,18 @@ services:
       - 8081:8081
     env_file:
       - ./hadoop.env
-  spark-notebook:
-    image: bde2020/spark-notebook:2.1.0-hadoop2.8-hive
-    container_name: spark-notebook
+  # spark-notebook:
+  #   image: bde2020/spark-notebook:2.1.0-hadoop2.8-hive
+  #   container_name: spark-notebook
+  #   env_file:
+  #     - ./hadoop.env
+  #   ports:
+  #     - 9001:9001
+  spark-streaming-rdd:
+    image: bde2020/spark-scala-template
+    build:
+      context: ./scala
     env_file:
-      - ./hadoop.env
-    ports:
-      - 9001:9001
+      - ./app.env
+    links:
+      - spark-master:spark-master

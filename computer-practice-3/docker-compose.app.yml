@@ -1,8 +1,0 @@
-version: '3'
-services: 
-  spark-streamin-rdd:
-    build:
-      dockerfile: ./scale/Dockerfile
-      context: ./scala 
-    env_file: 
-      - ./app.env
