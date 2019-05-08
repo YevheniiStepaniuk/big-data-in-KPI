@@ -1,24 +1,38 @@
 package com.yevhenii
 
-import org.apache.spark.graphx.{Edge, Graph}
+import org.apache.spark.graphx.{Edge, Graph, VertexId}
+import org.apache.spark.rdd.RDD
 import org.apache.spark.{SparkConf, SparkContext}
 
 class task1 {
-  val conf = new SparkConf().setAppName("openflights-app").setMaster("local[2]");
-  val sc = new SparkContext(conf)
 
-  val file = sc.textFile("src/main/resources/textFile1.csv").map(line => line.split(","))
+  def run() {
+    val conf = new SparkConf().setAppName("openflights-app").setMaster("local[2]");
+    val sc = new SparkContext(conf)
 
+    val routes: RDD[Route] = sc.textFile("hdfs://namenode:8020/graph/routes.csv")
+      .map(line => line.split(","))
+      .filter(line => !line.contains("\\N"))
+      .map(line => new Route(line(0), line(1).toLong, line(2), line(3).toLong, line(4), line(5).toLong))
 
-  val vertex = file.map(line => (line(3).toLong, line(2)))
-  val edges = file.map(line => new Edge(line(3).toLong, line(5).toLong))
+    val airports: RDD[Airport] = sc.textFile("hdfs://namenode:8020/graph/airports-extended.csv")
+      .map(line => line.split(","))
+      .map(line => new Airport(line(0).toLong, line(1), line(2), line(3), line(4), line(5), line(6).toDouble, line(7).toDouble))
 
-  val graph = Graph(vertex, edges).cache()
+    val vertex: RDD[(VertexId, String)] = airports.map(airport => (airport.id, airport.name))
+    val edges: RDD[Edge[VertexId]] = routes.map(route => Edge(route.sourceAirportId, route.destinationAirportId))
 
-  val maxVertex = graph.inDegrees.union(graph.outDegrees).sortBy(_._2, false).take(1);
-  val minVertex = graph.inDegrees.union(graph.outDegrees).sortBy(_._2, true).take(1);
+    val graph = Graph(vertex, edges).cache()
+    val maxVertex = graph.inDegrees.union(graph.outDegrees).sortBy(_._2, false).take(1).head
+    val minVertex = graph.inDegrees.union(graph.outDegrees).sortBy(_._2, true).take(1).head
 
-  val maxAirport = graph.vertices.filter((v) => v._1 == maxVertex).map(_._2)
-  val minAirport = graph.vertices.filter((v) => v._1 == minVertex).map(_._2)
+    val maxAirport: String = graph.vertices.filter((v) => v._1 == maxVertex._1).map(_._2).take(1).head
+    val minAirport: String = graph.vertices.filter((v) => v._1 == minVertex._1).map(_._2).take(1).head
 
+    println("Max airport name: ")
+    println( maxAirport)
+
+    println("Min airport name: ")
+    println(minAirport)
+  }
 }

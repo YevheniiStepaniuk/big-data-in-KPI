@@ -11,10 +11,6 @@ create external table ny_times_table
     print_page string,
     source string,
     document_type string,
-    -- headline_main string,
-    -- headline_kicker string,
-    -- headline_print_headline string,
-    -- headline_content_kicker string,
     multimedia array
     <
         struct
@@ -76,8 +72,4 @@ create external table ny_times_table
 partitioned by (year int, month int)
 clustered by (source, section_name, subsection_name) into 2 buckets
 ROW FORMAT serde 'org.openx.data.jsonserde.JsonSerDe'
--- WITH SERDEPROPERTIES ( "ignore.malformed.json" = "true")
--- ROW FORMAT DELIMITED
--- FIELDS TERMINATED BY ','
--- STORED AS TEXTFILE
 LOCATION 'hdfs://namenode:8020/tables_data/ny_times/';

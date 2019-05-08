@@ -11,9 +11,8 @@ services:
       - ./data/etl/store:/store
     environment:
       - MODE=Generator
-      # - MODE=ETL
-  hadoop-etl-loader:
-    container_name: hadoop-etl-loader
+  hadoop-etl-loader-1:
+    container_name: hadoop-etl-loader-1
     build:
       dockerfile: ./Hadoop-ETL/Dockerfile
       context: ./Hadoop-ETL
@@ -22,5 +21,38 @@ services:
     volumes:
       - ./data/etl/store:/store
     environment:
-      # - MODE=Generator
       - MODE=ETL
+      - NYTimes__YearFrom=1950
+      - NYTimes__MonthFrom=1
+      - NYTimes__YearTo=1967
+      - NYTimes__MonthTo=12
+  hadoop-etl-loader-2:
+    container_name: hadoop-etl-loader-2
+    build:
+      dockerfile: ./Hadoop-ETL/Dockerfile
+      context: ./Hadoop-ETL
+    env_file:
+      - ./hadoop-etl.env
+    volumes:
+      - ./data/etl/store:/store
+    environment:
+      - MODE=ETL
+      - NYTimes__YearFrom=1968
+      - NYTimes__MonthFrom=1
+      - NYTimes__YearTo=1993
+      - NYTimes__MonthTo=12
+  hadoop-etl-loade-3:
+    container_name: hadoop-etl-loader-3
+    build:
+      dockerfile: ./Hadoop-ETL/Dockerfile
+      context: ./Hadoop-ETL
+    env_file:
+      - ./hadoop-etl.env
+    volumes:
+      - ./data/etl/store:/store
+    environment:
+      - MODE=ETL
+      - NYTimes__YearFrom=1994
+      - NYTimes__MonthFrom=1
+      - NYTimes__YearTo=2019
+      - NYTimes__MonthTo=5
