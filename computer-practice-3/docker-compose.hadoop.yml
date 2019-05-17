@@ -1,12 +1,13 @@
 version: "3"
 services:
   namenode:
-    build:
-      context: ./hadoop
+    image: bde2020/hadoop-namenode:1.1.0-hadoop2.8-java8
     container_name: namenode
+    volumes:
+      - ./data/namenode:/hadoop/dfs/name
+      - ./input/hadoop:/hadoop/dfs/dataset
     environment:
       - CLUSTER_NAME=test
-      - DATASET_FILE=./input/hadoop/For_Hire_Vehicles__FHV__-_Active.csv
     env_file:
       - ./hadoop.env
     ports:
@@ -14,7 +15,7 @@ services:
     depends_on:
       - datanode
   datanode:
-    image: bde2020/hadoop-datanode:2.0.0-hadoop3.1.1-java8
+    image: bde2020/hadoop-datanode:1.1.0-hadoop2.8-java8
     volumes:
       - ./data/datanode:/hadoop/dfs/data
     env_file:
@@ -22,4 +23,4 @@ services:
     ports:
       - 50075:50075
     environment:
-      - SERVICE_PRECONDITION="namenode:50070"
+      - CLUSTER_NAME=test
