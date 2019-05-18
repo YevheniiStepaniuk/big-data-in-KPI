@@ -5,7 +5,6 @@ services:
     container_name: namenode
     volumes:
       - ./data/namenode:/hadoop/dfs/name
-      - ./input/hadoop:/hadoop/dfs/dataset
     environment:
       - CLUSTER_NAME=test
     env_file:
@@ -24,3 +23,9 @@ services:
       - 50075:50075
     environment:
       - CLUSTER_NAME=test
+  hue:
+    image: bde2020/hdfs-filebrowser:3.11
+    ports:
+      - 8088:8088
+    environment:
+      - NAMENODE_HOST=namenode

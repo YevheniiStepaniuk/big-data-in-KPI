@@ -6,7 +6,8 @@ libraryDependencies += "it.nerdammer.bigdata" % "spark-hbase-connector_2.10" % "
 
 libraryDependencies += "org.apache.spark" %% "spark-core" % "1.6.1"
 libraryDependencies += "org.apache.spark" %% "spark-streaming" % "1.6.1"
-libraryDependencies += "org.apache.spark" %% "spark-streaming-twitter" % "1.6.3"
+libraryDependencies += "org.apache.spark" %% "spark-sql" % "2.4.3"
+
 
 libraryDependencies += "org.json4s" %% "json4s-jackson" % "3.2.11"
 
@@ -19,4 +20,4 @@ assemblyMergeStrategy in assembly := {
   case _ => MergeStrategy.first
 }
 
-mainClass in assembly := Some("com.yevhenii.twitterRdd.twitterRdd")
+mainClass in assembly := Some("com.yevhenii.hdfsRdd.hdfsRdd")
