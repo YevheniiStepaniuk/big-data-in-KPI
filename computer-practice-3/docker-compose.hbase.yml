@@ -1,5 +1,5 @@
 version: "3"
-services: 
+services:
   hbase:
     image: bde2020/hbase-standalone:1.0.0-hbase1.2.6
     container_name: hbase
@@ -15,6 +15,6 @@ services:
       - 3888:3888
       - 2181:2181
     environment:
-      SERVICE_PRECONDITION: "namenode:50070 datanode:50075"
+      SERVICE_PRECONDITION: "namenode:8020 datanode:50075"
     env_file:
       - ./hbase-standalone.env

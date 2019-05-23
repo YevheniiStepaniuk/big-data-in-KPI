@@ -26,7 +26,6 @@ services:
     ports:
       - 9001:9001
   openflights-app:
-    image: bde2020/spark-scala-template
     build:
       context: ./scala
     env_file:

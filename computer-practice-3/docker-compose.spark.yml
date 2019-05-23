@@ -19,7 +19,8 @@ services:
     env_file:
       - ./hadoop.env
   spark-streaming-rdd:
-    image: bde2020/spark-scala-template
+    build:
+      context: ./scala
     env_file:
       - ./app.env
     links:

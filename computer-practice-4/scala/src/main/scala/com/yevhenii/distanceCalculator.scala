@@ -4,7 +4,7 @@ package com.yevhenii
 case class Location(lat: Double, lon: Double)
 
 
-class DistanceCalculator {
+class DistanceCalculator extends Serializable {
 
   private val AVERAGE_RADIUS_OF_EARTH_KM = 6371
 
