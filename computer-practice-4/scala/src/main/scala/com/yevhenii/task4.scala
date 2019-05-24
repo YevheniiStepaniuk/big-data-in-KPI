@@ -26,6 +26,8 @@ class task4 extends Run{
 
     val graph = Graph(vertex, edges).cache()
 
+
+
    val ids = graph.inDegrees.union(graph.outDegrees).filter(_._2 == 0).map(_._1).collect()
 
     if(ids.length  == 0)

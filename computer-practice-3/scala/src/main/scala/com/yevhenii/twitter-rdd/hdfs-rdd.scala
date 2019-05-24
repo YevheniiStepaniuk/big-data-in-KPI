@@ -1,21 +1,13 @@
 package com.yevhenii.hdfsRdd
-import it.nerdammer.spark.hbase.conversion.FieldWriter
+import com.datastax.spark.connector.cql.CassandraConnectorConf
 import org.apache.spark.SparkConf
 import org.apache.spark.sql.types.StructType
-import org.apache.spark.sql.{DataFrame, Row, SparkSession}
+import org.apache.spark.sql.{DataFrame, SparkSession}
+import org.apache.spark.sql.cassandra._
 
 import scala.util.Properties
 
 object hdfsRdd {
-
-  implicit def myDataWriter: FieldWriter[Row] = new FieldWriter[Row] {
-    override def map(data: Row): HBaseData =
-      Seq(
-
-      )
-
-    override def columns = Seq("prg", "name")
-  }
   def main(args: Array[String]) {
     val csvFilePath = Properties.envOrElse("CSV_FILE_PATH", "")
     val csvOutputFilePath = Properties.envOrElse("CSV_OUTPUT_FILE_PATH", "")
@@ -24,6 +16,8 @@ object hdfsRdd {
     conf.setAppName(appName).setMaster("local[2]").set("spark.hbase.host", "hbase")
 
     val spark = SparkSession.builder.config(conf).getOrCreate()
+    spark.setCassandraConf(CassandraConnectorConf.KeepAliveMillisParam.option(10000))
+    spark.setCassandraConf("cassandra-seed-node", CassandraConnectorConf.ConnectionHostParam.option("cassandra-seed-node"))
 
     val schema = new StructType()
       .add("active", "string")
@@ -53,16 +47,14 @@ object hdfsRdd {
     val dataFrame: DataFrame = spark
       .read
       .option("header","true")
-      .schema(schema)
+//      .schema(schema)
       .csv(csvFilePath)
-      .where("base_type = 'LUXURY'")
+//      .where("Vehicle_Year = '2014'")
 
-    println(csvOutputFilePath)
 
     dataFrame.show(10)
 
-    dataFrame.write.option("header", "true").csv(csvOutputFilePath)
-//    val rdd: RDD[Row] = dataFrame.rdd
-//    rdd.toHBaseTable("rdd").toColumns("active", "vehicle_license_number", "name", "license_type", "expiration_date", "permit_license_number", "dmv_license_plate_number", "vehicle_vin_number", "wheelchair_accessible", "certification_date", "hack_up_date", "vehicle_year", "base_number", "base_name", "base_type", "veh", "base_telephone_number", "website", "base_address", "reason", "order_date", "last_date_updated", "last_time_updated");
+    dataFrame.coalesce(1).write.option("header", "true").csv(csvOutputFilePath)
+    dataFrame.write.format("org.apache.spark.sql.cassandra").options(Map( "table" -> "vehicles", "keyspace" -> "testkeyspace")).save()
   }
 }

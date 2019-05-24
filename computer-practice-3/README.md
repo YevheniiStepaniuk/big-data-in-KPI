@@ -18,9 +18,6 @@ Generate struct type from csv header
 ```javascript
 "csv header"
   .split(",")
-  .map(
-    s =>
-      `add("${s.toLowerCase()}", "${s.includes("Date") ? "date" : "string"}")`
-  )
+  .map(s => `add("${s}", "${s.includes("Date") ? "date" : "string"}")`)
   .join("\n.");
 ```
