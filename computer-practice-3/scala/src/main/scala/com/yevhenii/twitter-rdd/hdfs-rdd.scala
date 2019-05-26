@@ -11,20 +11,32 @@ object hdfsRdd {
   def main(args: Array[String]) {
     val csvFilePath = Properties.envOrElse("CSV_FILE_PATH", "")
     val csvOutputFilePath = Properties.envOrElse("CSV_OUTPUT_FILE_PATH", "")
+    val cassandraKeySpace = Properties.envOrElse("CASSANDRA_KEYSPACE", "");
+    val cassandraTable = Properties.envOrElse("CASSANDRA_TABLE", "");
+    val writeToCassandra = Properties.envOrElse("WRITE_TO_CASSANDRA", "false").toBoolean;
+    val writeToHDFS = Properties.envOrElse("WRITE_TO_HDFS", "false").toBoolean;
+    val cassandraHost = Properties.envOrElse("CASSANDRA_HOST", "");
+    val cassandraUser = Properties.envOrElse("CASSANDRA_USER", "");
+    val cassandraPassword = Properties.envOrElse("CASSANDRA_PASSWORD", "");
+
     val appName = "HDFSData"
     val conf = new SparkConf()
-    conf.setAppName(appName).setMaster("local[2]").set("spark.hbase.host", "hbase")
+    conf.setAppName(appName).setMaster("local[2]")
+      .set("spark.cassandra.connection.host", cassandraHost)
+      .set("spark.cassandra.auth.username", cassandraUser)
+      .set("spark.cassandra.auth.password", cassandraPassword)
 
     val spark = SparkSession.builder.config(conf).getOrCreate()
-    spark.setCassandraConf(CassandraConnectorConf.KeepAliveMillisParam.option(10000))
-    spark.setCassandraConf("cassandra-seed-node", CassandraConnectorConf.ConnectionHostParam.option("cassandra-seed-node"))
+      .setCassandraConf(CassandraConnectorConf.KeepAliveMillisParam.option(10000))
+      .setCassandraConf(cassandraHost,
+        CassandraConnectorConf.ConnectionHostParam.option(cassandraHost))
 
     val schema = new StructType()
       .add("active", "string")
       .add("vehicle_license_number", "string")
       .add("name", "string")
       .add("license_type", "string")
-      .add("expiration_date", "date")
+      .add("expiration_date", "string")
       .add("permit_license_number", "string")
       .add("dmv_license_plate_number", "string")
       .add("vehicle_vin_number", "string")
@@ -40,21 +52,27 @@ object hdfsRdd {
       .add("website", "string")
       .add("base_address", "string")
       .add("reason", "string")
-      .add("order_date", "date")
-      .add("last_date_updated", "date")
+      .add("order_date", "string")
+      .add("last_date_updated", "string")
       .add("last_time_updated", "string")
+
+    val columnNames = Seq("name", "vehicle_year")
 
     val dataFrame: DataFrame = spark
       .read
       .option("header","true")
-//      .schema(schema)
+      .schema(schema)
       .csv(csvFilePath)
-//      .where("Vehicle_Year = '2014'")
+      .where("vehicle_year = '2014'")
+//      .select(columnNames.head, columnNames.tail: _*)
 
 
     dataFrame.show(10)
 
-    dataFrame.coalesce(1).write.option("header", "true").csv(csvOutputFilePath)
-    dataFrame.write.format("org.apache.spark.sql.cassandra").options(Map( "table" -> "vehicles", "keyspace" -> "testkeyspace")).save()
+    if(writeToHDFS)
+      dataFrame.coalesce(1).write.option("header", "true").csv(csvOutputFilePath)
+
+    if(writeToCassandra)
+      dataFrame.write.format("org.apache.spark.sql.cassandra").options(Map( "table" -> cassandraTable, "keyspace" -> cassandraKeySpace)).save()
   }
 }
