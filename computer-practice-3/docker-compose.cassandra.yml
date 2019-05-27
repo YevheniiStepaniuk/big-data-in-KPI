@@ -1,14 +1,7 @@
 version: "3"
 services:
-services:
   cassandra-node-1:
     image: cassandra:3.11.0
     command: /bin/bash -c "echo 'Waiting for seed node' && sleep 30 && /docker-entrypoint.sh cassandra -f"
     environment:
-      - "CASSANDRA_SEEDS=cassandra-seed-node"
-
-  cassandra-node-2:
-    image: cassandra:3.11.0
-    command: /bin/bash -c "echo 'Waiting for seed node' && sleep 80 && /docker-entrypoint.sh cassandra -f"
-    environment:
-      - "CASSANDRA_SEEDS=cassandra-seed-node"
+      - "CASSANDRA_SEEDS=cassandra-seed"

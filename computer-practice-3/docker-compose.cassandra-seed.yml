@@ -1,9 +1,10 @@
 version: "3"
 services:
-services:
   cassandra-seed:
-    container_name: cassandra-seed-node
+    container_name: cassandra-seed
     image: cassandra:3.11.0
+    environment: 
+      - "JAVA_OPTS='-Xms1024M -Xmx1024M'" 
     ports:
       - "9042:9042"   # Native transport
       - "7199:7199"   # JMX
