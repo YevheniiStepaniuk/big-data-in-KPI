@@ -13,8 +13,11 @@ object hdfsRdd {
     val csvOutputFilePath = Properties.envOrElse("CSV_OUTPUT_FILE_PATH", "")
     val cassandraKeySpace = Properties.envOrElse("CASSANDRA_KEYSPACE", "");
     val cassandraTable = Properties.envOrElse("CASSANDRA_TABLE", "");
+
     val writeToCassandra = Properties.envOrElse("WRITE_TO_CASSANDRA", "false").toBoolean;
     val writeToHDFS = Properties.envOrElse("WRITE_TO_HDFS", "false").toBoolean;
+    val useKafka = Properties.envOrElse("USE_KAFKA", "false").toBoolean;
+
     val cassandraHost = Properties.envOrElse("CASSANDRA_HOST", "");
     val cassandraUser = Properties.envOrElse("CASSANDRA_USER", "");
     val cassandraPassword = Properties.envOrElse("CASSANDRA_PASSWORD", "");
@@ -68,6 +71,16 @@ object hdfsRdd {
 
 
     dataFrame.show(10)
+
+    if(useKafka){
+      val ds = dataFrame
+        .select(columnNames.head, columnNames.tail: _*)
+        .write
+        .format("kafka")
+        .option("kafka.bootstrap.servers", "kafka:9092")
+        .option("topic", "vehicles")
+        .save()
+    }
 
     if(writeToHDFS)
       dataFrame.coalesce(1).write.option("header", "true").csv(csvOutputFilePath)

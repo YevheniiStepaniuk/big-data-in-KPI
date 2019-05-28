@@ -6,7 +6,7 @@ libraryDependencies += "org.apache.spark" %% "spark-core" % "2.4.3"
 libraryDependencies += "org.apache.spark" %% "spark-streaming" % "2.4.3"
 libraryDependencies += "org.apache.spark" %% "spark-sql" % "2.4.3"
 libraryDependencies += "com.datastax.spark" %% "spark-cassandra-connector" % "2.4.1"
-
+libraryDependencies += "org.apache.spark" % "spark-sql-kafka-0-10_2.11" % 2.2.0
 
 libraryDependencies += "org.json4s" %% "json4s-jackson" % "3.2.11"
 
