@@ -11,6 +11,7 @@ object hdfsRdd {
   def main(args: Array[String]) {
     val csvFilePath = Properties.envOrElse("CSV_FILE_PATH", "")
     val csvOutputFilePath = Properties.envOrElse("CSV_OUTPUT_FILE_PATH", "")
+    val csvOutputFileFromKafka = Properties.envOrElse("CSV_OUTPUT_FILE_PATH_KAFKA", "")
     val cassandraKeySpace = Properties.envOrElse("CASSANDRA_KEYSPACE", "");
     val cassandraTable = Properties.envOrElse("CASSANDRA_TABLE", "");
 
@@ -73,7 +74,7 @@ object hdfsRdd {
     dataFrame.show(10)
 
     if(useKafka){
-      val ds = dataFrame
+      dataFrame
         .select(columnNames.head, columnNames.tail: _*)
         .write
         .format("kafka")
@@ -87,5 +88,22 @@ object hdfsRdd {
 
     if(writeToCassandra)
       dataFrame.write.format("org.apache.spark.sql.cassandra").options(Map( "table" -> cassandraTable, "keyspace" -> cassandraKeySpace)).save()
+
+
+    if(useKafka){
+      val kafkaSchema = new StructType().add("name", "string").add("vehicle_year", "string")
+
+      val dataFrameFromKafka: DataFrame = spark
+        .readStream
+        .format("kafka")
+        .schema(kafkaSchema)
+        .option("kafka.bootstrap.servers", "kafka:9092")
+        .option("subscribe", "vehicles")
+        .load()
+
+      dataFrameFromKafka.foreach(x => x.toString())
+
+      dataFrameFromKafka.coalesce(1).write.option("header", "true").csv(csvOutputFileFromKafka)
+    }
   }
 }
