@@ -4,7 +4,7 @@ import org.apache.spark.SparkConf
 import org.apache.spark.sql.cassandra._
 import org.apache.spark.sql.types.StructType
 import org.apache.spark.sql.{DataFrame, SparkSession}
-
+import org.apache.spark.sql.functions._
 import scala.util.Properties
 
 object hdfsRdd {
@@ -23,12 +23,16 @@ object hdfsRdd {
     val cassandraUser = Properties.envOrElse("CASSANDRA_USER", "");
     val cassandraPassword = Properties.envOrElse("CASSANDRA_PASSWORD", "");
 
+    val kafkaAddress = Properties.envOrElse("KAFKA_ADDRESS", "");
+    val kafkaTopic = Properties.envOrElse("KAFKA_TOPIC", "");
+
     val appName = "HDFSData"
     val conf = new SparkConf()
     conf.setAppName(appName).setMaster("local[2]")
       .set("spark.cassandra.connection.host", cassandraHost)
       .set("spark.cassandra.auth.username", cassandraUser)
       .set("spark.cassandra.auth.password", cassandraPassword)
+      .set("spark.jars.packages", "org.apache.spark:spark-sql-kafka-0-10:2.4.0")
 
     val spark = SparkSession.builder.config(conf).getOrCreate()
       .setCassandraConf(CassandraConnectorConf.KeepAliveMillisParam.option(10000))
@@ -60,26 +64,22 @@ object hdfsRdd {
       .add("last_date_updated", "string")
       .add("last_time_updated", "string")
 
-    val columnNames = Seq("name", "vehicle_year")
-
     val dataFrame: DataFrame = spark
       .read
       .option("header","true")
       .schema(schema)
       .csv(csvFilePath)
       .where("vehicle_year = '2014'")
-//      .select(columnNames.head, columnNames.tail: _*)
-
 
     dataFrame.show(10)
 
     if(useKafka){
       dataFrame
-        .select(columnNames.head, columnNames.tail: _*)
+        .select(to_json(struct("name", "vehicle_year")).alias("value"))
         .write
         .format("kafka")
-        .option("kafka.bootstrap.servers", "kafka:9092")
-        .option("topic", "vehicles")
+        .option("kafka.bootstrap.servers", kafkaAddress)
+        .option("topic", kafkaTopic)
         .save()
     }
 
@@ -91,14 +91,11 @@ object hdfsRdd {
 
 
     if(useKafka){
-      val kafkaSchema = new StructType().add("name", "string").add("vehicle_year", "string")
-
       val dataFrameFromKafka: DataFrame = spark
         .readStream
         .format("kafka")
-        .schema(kafkaSchema)
-        .option("kafka.bootstrap.servers", "kafka:9092")
-        .option("subscribe", "vehicles")
+        .option("kafka.bootstrap.servers", kafkaAddress)
+        .option("subscribe", kafkaTopic)
         .load()
 
       dataFrameFromKafka.foreach(x => x.toString())
