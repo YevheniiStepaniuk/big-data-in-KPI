@@ -1,9 +1,9 @@
 package com.yevhenii.hdfsRdd
 import com.datastax.spark.connector.cql.CassandraConnectorConf
 import org.apache.spark.SparkConf
+import org.apache.spark.sql.cassandra._
 import org.apache.spark.sql.types.StructType
 import org.apache.spark.sql.{DataFrame, SparkSession}
-import org.apache.spark.sql.cassandra._
 
 import scala.util.Properties
 
