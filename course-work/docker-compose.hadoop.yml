@@ -1,0 +1,27 @@
+version: "3"
+services:
+  namenode:
+    container_name: namenode
+    build: 
+      dockerfile: namenode.Dockerfile
+      context: ./hadoop
+    volumes:
+      - ./data/namenode:/hadoop/dfs/name
+    env_file:
+      - ./hadoop.env
+    ports:
+      - 50070:50070
+  datanode:
+    image: bde2020/hadoop-datanode:1.1.0-hadoop2.8-java8
+    # volumes:
+    #   - ./data/datanode/${HOSTNAME}:/hadoop/dfs/data
+    env_file:
+      - ./hadoop.env
+    ports:
+      - "50075-50100:50075"
+  hue:
+    image: bde2020/hdfs-filebrowser:3.11
+    ports:
+      - 8088:8088
+    environment:
+      - NAMENODE_HOST=namenode
