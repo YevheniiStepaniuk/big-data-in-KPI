@@ -1,4 +1,4 @@
-version: '3'
+version: "3"
 services:
   zookeeper:
     image: zookeeper:3.4.9
@@ -7,24 +7,47 @@ services:
     ports:
       - "2181:2181"
     environment:
-        ZOO_MY_ID: 1
-        ZOO_PORT: 2181
-        ZOO_SERVERS: server.1=zookeeper:2888:3888
+      ZOO_MY_ID: 1
+      ZOO_PORT: 2181
+      ZOO_SERVERS: server.1=zookeeper:2888:3888
     volumes:
       - ./data/zookeeper/data:/data
       - ./data/zookeeper/datalog:/datalog
 
   kafka:
     image: wurstmeister/kafka
-    hostname: kafka-node
     ports:
       - "9092:9092"
     environment:
       KAFKA_ZOOKEEPER_CONNECT: "zookeeper:2181"
       KAFKA_BROKER_ID: 1
-      KAFKA_CREATE_TOPICS: "vehicles:1:1"
+      KAFKA_CREATE_TOPICS: "vehicles:3:1:compat"
       KAFKA_ADVERTISED_HOST_NAME: "kafka"
+      AUTO_OFFSET_RESET: "latest"
     volumes:
       - ./data/kafka:/var/lib/kafka/data
     depends_on:
       - zookeeper
+  kafka-rest-proxy:
+    image: confluentinc/cp-kafka-rest:5.1.2
+    ports:
+      - "8082:8082"
+    environment:
+      KAFKA_REST_LISTENERS: http://kafka-rest-proxy:8082
+      KAFKA_REST_HOST_NAME: kafka-rest-proxy
+      KAFKA_REST_BOOTSTRAP_SERVERS: kafka:9092
+      KAFKA_REST_consumer.request.timeout.ms: 30000
+    depends_on:
+      - zookeeper
+      - kafka
+  kafka-ui:
+    image: landoop/kafka-topics-ui
+    ports:
+      - "8000:8000"
+    environment:
+      KAFKA_REST_PROXY_URL: "http://kafka-rest-proxy:8082/"
+      RECORD_POLL_TIMEOUT: 30000
+      PROXY: "true"
+    depends_on:
+      - kafka
+      - kafka-rest-proxy

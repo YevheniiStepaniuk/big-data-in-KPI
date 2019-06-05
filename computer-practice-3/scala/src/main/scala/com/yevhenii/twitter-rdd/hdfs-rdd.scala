@@ -11,20 +11,23 @@ object hdfsRdd {
   def main(args: Array[String]) {
     val csvFilePath = Properties.envOrElse("CSV_FILE_PATH", "")
     val csvOutputFilePath = Properties.envOrElse("CSV_OUTPUT_FILE_PATH", "")
-    val csvOutputFileFromKafka = Properties.envOrElse("CSV_OUTPUT_FILE_PATH_KAFKA", "")
-    val cassandraKeySpace = Properties.envOrElse("CASSANDRA_KEYSPACE", "");
-    val cassandraTable = Properties.envOrElse("CASSANDRA_TABLE", "");
 
     val writeToCassandra = Properties.envOrElse("WRITE_TO_CASSANDRA", "false").toBoolean;
     val writeToHDFS = Properties.envOrElse("WRITE_TO_HDFS", "false").toBoolean;
-    val useKafka = Properties.envOrElse("USE_KAFKA", "false").toBoolean;
+    val kafkaRead = Properties.envOrElse("KAFKA_READ", "false").toBoolean;
+    val kafkaWrite = Properties.envOrElse("KAFKA_WRITE", "false").toBoolean;
 
+
+    val cassandraKeySpace = Properties.envOrElse("CASSANDRA_KEYSPACE", "");
+    val cassandraTable = Properties.envOrElse("CASSANDRA_TABLE", "");
     val cassandraHost = Properties.envOrElse("CASSANDRA_HOST", "");
     val cassandraUser = Properties.envOrElse("CASSANDRA_USER", "");
     val cassandraPassword = Properties.envOrElse("CASSANDRA_PASSWORD", "");
 
     val kafkaAddress = Properties.envOrElse("KAFKA_ADDRESS", "");
     val kafkaTopic = Properties.envOrElse("KAFKA_TOPIC", "");
+    val outputFilePathFromKafka = Properties.envOrElse("KAFKA_OUTPUT_FILE_PATH", "")
+    val kafkaCheckpointLocation = Properties.envOrElse("KAFKA_CHECKPOINT_LOCATION", "")
 
     val appName = "HDFSData"
     val conf = new SparkConf()
@@ -33,6 +36,7 @@ object hdfsRdd {
       .set("spark.cassandra.auth.username", cassandraUser)
       .set("spark.cassandra.auth.password", cassandraPassword)
       .set("spark.jars.packages", "org.apache.spark:spark-sql-kafka-0-10:2.4.0")
+      .set("spark.sql.streaming.checkpointLocation", kafkaCheckpointLocation)
 
     val spark = SparkSession.builder.config(conf).getOrCreate()
       .setCassandraConf(CassandraConnectorConf.KeepAliveMillisParam.option(10000))
@@ -73,13 +77,18 @@ object hdfsRdd {
 
     dataFrame.show(10)
 
-    if(useKafka){
+    if(kafkaWrite){
       dataFrame
-        .select(to_json(struct("name", "vehicle_year")).alias("value"))
+        .select(
+          col("vehicle_vin_number").alias("key"),
+          to_json(struct("name", "vehicle_year")).alias("value")
+        )
         .write
         .format("kafka")
         .option("kafka.bootstrap.servers", kafkaAddress)
         .option("topic", kafkaTopic)
+        .option("startingOffsets", "earliest")
+        .option("endingOffsets", "latest")
         .save()
     }
 
@@ -87,20 +96,25 @@ object hdfsRdd {
       dataFrame.coalesce(1).write.option("header", "true").csv(csvOutputFilePath)
 
     if(writeToCassandra)
-      dataFrame.write.format("org.apache.spark.sql.cassandra").options(Map( "table" -> cassandraTable, "keyspace" -> cassandraKeySpace)).save()
+      dataFrame
+        .write
+        .format("org.apache.spark.sql.cassandra")
+        .options(Map( "table" -> cassandraTable, "keyspace" -> cassandraKeySpace))
+        .save()
 
 
-    if(useKafka){
-      val dataFrameFromKafka: DataFrame = spark
+    if(kafkaRead){
+        val dataFrameFromKafka: DataFrame = spark
         .readStream
         .format("kafka")
         .option("kafka.bootstrap.servers", kafkaAddress)
         .option("subscribe", kafkaTopic)
+        .option("startingOffsets", "earliest")
         .load()
 
-      dataFrameFromKafka.foreach(x => x.toString())
+      dataFrameFromKafka.writeStream.format("console").start()
 
-      dataFrameFromKafka.coalesce(1).write.option("header", "true").csv(csvOutputFileFromKafka)
+      dataFrameFromKafka.writeStream.start(outputFilePathFromKafka).awaitTermination()
     }
   }
 }
