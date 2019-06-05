@@ -1,0 +1,25 @@
+version: "3"
+services:
+  spark-master:
+    image: bde2020/spark-master
+    container_name: spark-master
+    ports:
+      - 8080:8080
+      - 7077:7077
+    env_file:
+      - ./hadoop.env
+  spark-worker:
+    image: bde2020/spark-worker
+    depends_on:
+      - spark-master
+    environment:
+      - SPARK_MASTER=spark://spark-master:7077
+    env_file:
+      - ./hadoop.env
+  course-app:
+    build:
+      context: ./python
+    env_file:
+      - ./app.env
+    links:
+      - spark-master:spark-master
