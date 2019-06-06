@@ -5,5 +5,7 @@ Cource materials:
 
 - Computer practice #1
 - Computer practice #2
-- Computer practice #3 WIP
+- Computer practice #3
 - Computer practice #4
+
+- Course Work WIP
