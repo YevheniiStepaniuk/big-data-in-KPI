@@ -1,11 +1,13 @@
+"""sparkprophet contains sample code for running fbprophet on Apache Spark."""
+
 import numpy as np
 import pandas as pd
 from fbprophet import Prophet
 from pyspark import SparkConf
 from pyspark.sql import SparkSession
-from pyspark.sql.functions import collect_list, struct
-from pyspark.sql.types import FloatType, StructField, StructType, StringType, TimestampType
-# from sklearn.metrics import mean_squared_error
+from pyspark.sql.functions import collect_list, struct, countDistinct, count
+from pyspark.sql.types import FloatType, StructField, StructType, StringType, TimestampType, IntegerType
+from sklearn.metrics import mean_squared_error
 
 changepoint_prior_scale = 0.005
 seasonality_prior_scale = 0.05
@@ -13,22 +15,24 @@ changepoint_range = 0.5
 
 
 def retrieve_data():
-    """Load sample data from ./data/original-input.csv as a pyspark.sql.DataFrame."""
     df = (spark.read
           .option("header", "true")
           .option("inferSchema", value=True)
-          .csv("hdfs://namenode:8020/data/input.csv"))
+          .csv("hdfs://namenode:8020/tables_data/dataset.csv"))
 
     # Drop any null values incase they exist
     df = df.dropna()
 
     # Rename timestamp to ds and total to y for fbprophet
     df = df.select(
-        df['timestamp'].alias('ds'),
-        df['app'],
-        df['value'].cast(FloatType()).alias('y'),
-        df['metric']
+        df['published'].alias('ds'),
+        df['flow'],
+        df['views'].alias('y')
     )
+
+    df = df.groupBy('flow')
+    
+    df = df.agg(collect_list(struct('ds', 'y')).alias('data'))
 
     return df
 
@@ -36,8 +40,7 @@ def retrieve_data():
 def transform_data(row):
     """Transform data from pyspark.sql.Row to python dict to be used in rdd."""
     data = row['data']
-    app = row['app']
-    mt = row['metric']
+    flow = row['flow']
 
     # Transform [pyspark.sql.Dataframe.Row] -> [dict]
     data_dicts = []
@@ -49,8 +52,7 @@ def transform_data(row):
     data['ds'] = pd.to_datetime(data['ds'])
 
     return {
-        'app': app,
-        'metric': mt,
+        'flow': flow,
         'data': data
     }
 
@@ -68,7 +70,7 @@ def partition_data(d):
     train_data = data[data['ds'] < start_datetime]
 
     # Account for zeros in data while still applying uniform transform
-    train_data['y'] = train_data['y'].apply(lambda x: np.log(x + 1))
+    # train_data['y'] = train_data['y'].apply(lambda x: np.log(x + 1))
 
     # Assign train/test split
     d['test_data'] = data.loc[(data['ds'] >= start_datetime)
@@ -116,53 +118,51 @@ def test_model(d):
 def make_forecast(d):
     """Execute the forecast method on the model to make future predictions."""
     model = d['model']
-    future = model.make_future_dataframe(
-        periods=576, freq='5min', include_history=False)
-    future = pd.DataFrame(future['ds'].apply(pd.DateOffset(1)))
+    future = model.make_future_dataframe(periods=30)
     forecast = model.predict(future)
     d['forecast'] = forecast
 
     return d
 
 
-# def normalize_predictions(d):
-#     """Normalize predictions using np.exp()."""
-#     predictions = d['predictions']
-#     predictions['yhat'] = np.exp(predictions['yhat']) - 1
-#     d['predictions'] = predictions
-#     return d
+def normalize_predictions(d):
+    """Normalize predictions using np.exp()."""
+    predictions = d['predictions']
+    predictions['yhat'] = np.exp(predictions['yhat']) - 1
+    d['predictions'] = predictions
+    return d
 
 
-# def normalize_forecast(d):
-#     """Normalize predictions using np.exp().
+def normalize_forecast(d):
+    """Normalize predictions using np.exp().
 
-#     Note:  np.exp(>709.782) = inf, so replace value with None
-#     """
-#     forecast = d['forecast']
-#     forecast['yhat'] = forecast['yhat'].apply(
-#         lambda x: np.exp(x) - 1 if x < 709.782 else None)
-#     forecast['yhat_lower'] = forecast['yhat_lower'].apply(
-#         lambda x: np.exp(x) - 1 if x < 709.782 else None)
-#     forecast['yhat_upper'] = forecast['yhat_upper'].apply(
-#         lambda x: np.exp(x) - 1 if x < 709.782 else None)
-#     d['forecast'] = forecast
-#     return d
+    Note:  np.exp(>709.782) = inf, so replace value with None
+    """
+    forecast = d['forecast']
+    forecast['yhat'] = forecast['yhat'].apply(
+        lambda x: np.exp(x) - 1 if x < 709.782 else None)
+    forecast['yhat_lower'] = forecast['yhat_lower'].apply(
+        lambda x: np.exp(x) - 1 if x < 709.782 else None)
+    forecast['yhat_upper'] = forecast['yhat_upper'].apply(
+        lambda x: np.exp(x) - 1 if x < 709.782 else None)
+    d['forecast'] = forecast
+    return d
 
 
-# def calc_error(d):
-#     """Calculate error using mse (mean squared error)."""
-#     test_data = d['test_data']
-#     predictions = d['predictions']
-#     results = mean_squared_error(test_data['y'], predictions['yhat'])
-#     d['mse'] = results
+def calc_error(d):
+    """Calculate error using mse (mean squared error)."""
+    test_data = d['test_data']
+    predictions = d['predictions']
+    results = mean_squared_error(test_data['y'], predictions['yhat'])
+    d['mse'] = results
 
-#     return d
+    return d
 
 
 def reduce_data_scope(d):
     """Return a tuple (app + , + metric_type, {})."""
     return (
-        d['app'] + ',' + d['metric'],
+        d['flow'],
         {
             'forecast': d['forecast'],
             'mse': d['mse'],
@@ -178,12 +178,10 @@ def expand_predictions(d):
     so that it can be persisted into a database, since most dont know how to
     interpret np python datatypes.
     """
-    app_metric, data = d
-    app, metric = app_metric.split(',')
+    flow, data = d
     return [
         (
-            app,
-            metric,
+            flow,
             p['ds'].to_pydatetime(),
             np.asscalar(p['yhat']) if isinstance(
                 p['yhat'], np.generic) else p['yhat'],
@@ -216,12 +214,13 @@ if __name__ == '__main__':
     # Retrieve data from local csv datastore
     df = retrieve_data()
 
+    df.show(10)
+
     # Can subset the data by uncommenting the following line and editing array
     # df = df[df.app.isin(['a'])]
 
+
     # Group data by app and metric_type to aggregate data for each app-metric combo
-    df = df.groupBy('app', 'metric')
-    df = df.agg(collect_list(struct('ds', 'y')).alias('data'))
 
     df = (df.rdd
           .map(lambda r: transform_data(r))
@@ -232,15 +231,14 @@ if __name__ == '__main__':
           .map(lambda d: train_model(d))
           .map(lambda d: test_model(d))
           .map(lambda d: make_forecast(d))
-        #   .map(lambda d: normalize_forecast(d))
-        #   .map(lambda d: normalize_predictions(d))
-        #   .map(lambda d: calc_error(d))
+          .map(lambda d: normalize_forecast(d))
+          .map(lambda d: normalize_predictions(d))
+          .map(lambda d: calc_error(d))
           .map(lambda d: reduce_data_scope(d))
           .flatMap(lambda d: expand_predictions(d)))
 
     schema = StructType([
-        StructField("app", StringType(), True),
-        StructField("metric", StringType(), True),
+        StructField("flow", StringType(), True),
         StructField("ds", TimestampType(), True),
         StructField("yhat", FloatType(), True),
         StructField("yhat_lower", FloatType(), True),
