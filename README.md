@@ -8,4 +8,4 @@ Cource materials:
 - Computer practice #3
 - Computer practice #4
 
-- Course Work WIP
+- Course Work
