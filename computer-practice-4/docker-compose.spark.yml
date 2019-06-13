@@ -15,16 +15,10 @@ services:
     environment:
       - SPARK_MASTER=spark://spark-master:7077
     ports:
-      - 8081:8081
+      - "8081-8100:8081"
+
     env_file:
       - ./hadoop.env
-  spark-notebook:
-    image: bde2020/spark-notebook:2.1.0-hadoop2.8-hive
-    container_name: spark-notebook
-    env_file:
-      - ./hadoop.env
-    ports:
-      - 9001:9001
   openflights-app:
     build:
       context: ./scala

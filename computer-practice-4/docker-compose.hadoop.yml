@@ -1,7 +1,9 @@
 version: "3"
 services:
   namenode:
-    image: bde2020/hadoop-namenode:1.1.0-hadoop2.8-java8
+    build: 
+      dockerfile: namenode.Dockerfile
+      context: ./hadoop
     container_name: namenode
     volumes:
       - ./data/namenode:/hadoop/dfs/name
@@ -20,7 +22,7 @@ services:
     env_file:
       - ./hadoop.env
     ports:
-      - 50075:50075
+      - "50075-50100:50075"
     environment:
       - CLUSTER_NAME=test
   hue:
