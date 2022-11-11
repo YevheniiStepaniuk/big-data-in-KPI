@@ -12,7 +12,7 @@ numpy==1.16.2
 pandas==0.24.2
 py4j==0.10.7
 pyparsing==2.3.1
-pyspark==2.4.0
+pyspark==3.2.2
 pyspark-stubs==2.4.0.post1
 pystan==2.17.1.0
 python-dateutil==2.8.0
